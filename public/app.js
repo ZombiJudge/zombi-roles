@@ -676,6 +676,7 @@ function openSetup() {
         ? `A token ending in ${tokenEnding} is saved. Leave this empty to keep it.`
         : 'From the Bot page in the Discord Developer Portal.';
     element('setup-server').value = serverId;
+    element('setup-title').textContent = hasToken ? 'Settings' : 'Set up Zombi Roles';
     element('setup-name').value = operatorName;
     element('setup-retention').value = retentionDays;
     renderRoleChoice();
