@@ -43,7 +43,7 @@
             <div class="screen-body">
                 <h1 id="setup-title" tabindex="-1">Set up Zombi Roles</h1>
                 <p>These stay on this computer. The bot token is never shown again after you save it.</p>
-                <form id="setup-form" class="card stack">
+                <form id="setup-form" class="card settings-grid">
                     <div class="field">
                         <label for="setup-token">Bot token</label>
                         <input id="setup-token" type="password" autocomplete="off" spellcheck="false">
@@ -70,9 +70,11 @@
                     </div>
                     <button type="submit" class="button button-primary">Save</button>
                 </form>
-                <div class="card stack" id="update-card" hidden>
-                    <h2>App</h2>
-                    <p id="update-version"></p>
+                <div class="card app-card" id="update-card" hidden>
+                    <div>
+                        <h2>App</h2>
+                        <p id="update-version"></p>
+                    </div>
                     <div class="button-row">
                         <button type="button" class="button button-primary" id="update-install" hidden>Update</button>
                         <button type="button" class="button" id="restart-app">Restart</button>
