@@ -30,6 +30,14 @@
             <li>Open the generated link, choose your server, and click <strong>Authorize</strong>.</li>
         </ol>
 
+        <h3>If someone else owns the server</h3>
+        <p>With Public Bot turned off, only the person who created the application can use the invite link. They also need the <strong>Manage Server</strong> permission on the server they're adding it to. You have two ways to set this up:</p>
+        <ul>
+            <li><strong>You create the bot:</strong> have the server owner give you a role with Manage Server, open the invite link, and add the bot. That role can be removed afterward without affecting the bot. You keep control of the application and its token.</li>
+            <li><strong>The server owner creates the bot:</strong> they follow steps 1 and 2 with their own Discord account, so they control the application and token. Discord's developer site may ask them to verify their account first.</li>
+        </ul>
+        <p>Whoever runs the app does not need to own the application or have Manage Roles. The bot makes the role changes.</p>
+
         <h2>3. Place the bot's role</h2>
         <p>In <strong>Server Settings</strong>, then <strong>Roles</strong>, drag the bot's role above every role it should manage. Discord only lets a bot manage roles below its own. Keep it below roles it should never touch, such as moderators.</p>
 
