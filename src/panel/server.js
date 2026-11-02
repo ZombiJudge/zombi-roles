@@ -294,6 +294,17 @@ export function createPanel({ dataDir, createClient, delayMs, sleep, port = 0, o
             return {};
         },
 
+        'POST /api/restart': async () => {
+            batches.assertIdle();
+
+            if (!updater?.enabled) {
+                throw new RangeError('Restart only works in an installed copy.');
+            }
+
+            setTimeout(onRestart, RESTART_DELAY_MS);
+            return {};
+        },
+
         'POST /api/shutdown': async () => {
             batches.assertIdle();
             setTimeout(onShutdown, RESTART_DELAY_MS);
