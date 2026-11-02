@@ -1,0 +1,18 @@
+{
+  "name": "zombi-roles",
+  "version": "1.0.0",
+  "description": "Self-hosted Discord bot that adds or removes roles for hundreds of members at once.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "demo": "node scripts/demo-panel.js",
+    "test": "node --test \"test/*.test.js\"",
+    "release:key": "node scripts/release-key.js",
+    "release": "node scripts/release.js",
+    "check:discord": "node scripts/discord-check.js"
+  }
+}

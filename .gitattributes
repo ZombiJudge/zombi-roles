@@ -1,0 +1,4 @@
+# Starter files must keep their system's line endings or they fail to run
+*.bat text eol=crlf
+*.command text eol=lf
+*.sh text eol=lf

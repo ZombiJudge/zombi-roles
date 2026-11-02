@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="zombi-session" content="__SESSION__">
+    <title>Zombi Roles</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" type="module"></script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <div class="toasts" id="toasts"></div>
+
+    <header class="site-header">
+        <div class="brand">
+            <span class="logo" aria-hidden="true"></span>
+            <span class="brand-name">Zombi Roles</span>
+        </div>
+        <span class="server-name" id="server-name"></span>
+        <nav aria-label="Main">
+            <button type="button" class="nav-button" data-nav="build">New batch</button>
+            <button type="button" class="nav-button" data-nav="history">Past batches</button>
+            <button type="button" class="nav-button" data-nav="setup">Settings</button>
+            <a class="nav-button" href="help.html" target="_blank" rel="noopener">Help</a>
+            <button type="button" class="nav-button" id="shut-down">Shut down</button>
+        </nav>
+    </header>
+
+    <section aria-label="Batch steps">
+        <ol class="stepper" id="stepper" hidden>
+            <li data-step="1">Members</li>
+            <li data-step="2">Roles</li>
+            <li data-step="3">Preview</li>
+            <li data-step="4">Run</li>
+        </ol>
+    </section>
+
+    <main id="main" tabindex="-1">
+        <section id="view-setup" class="screen" hidden aria-labelledby="setup-title">
+            <div class="screen-body">
+                <h1 id="setup-title" tabindex="-1">Set up Zombi Roles</h1>
+                <p>These stay on this computer. The bot token is never shown again after you save it.</p>
+                <form id="setup-form" class="card stack">
+                    <div class="field">
+                        <label for="setup-token">Bot token</label>
+                        <input id="setup-token" type="password" autocomplete="off" spellcheck="false">
+                        <p class="hint" id="setup-token-hint">From the Bot page in the Discord Developer Portal.</p>
+                    </div>
+                    <div class="field">
+                        <label for="setup-server">Server ID</label>
+                        <input id="setup-server" inputmode="numeric" autocomplete="off" required>
+                    </div>
+                    <div class="field">
+                        <label for="setup-name">Your name</label>
+                        <input id="setup-name" maxlength="32" autocomplete="off" required>
+                        <p class="hint">Shown in the audit log, such as "Zombi Roles batch 12 by Sam".</p>
+                    </div>
+                    <div class="field">
+                        <label for="setup-retention">Keep batch files for this many days</label>
+                        <input id="setup-retention" type="number" min="1" max="3650" required>
+                        <p class="hint">Older member lists and results are deleted automatically.</p>
+                    </div>
+                    <div class="field" id="setup-role-field" hidden>
+                        <label for="setup-role">Who can use /rolebatch</label>
+                        <select id="setup-role"></select>
+                        <p class="hint">Only members with this Discord role can run the slash command.</p>
+                    </div>
+                    <button type="submit" class="button button-primary">Save</button>
+                </form>
+                <div class="card stack" id="update-card" hidden>
+                    <h2>Updates</h2>
+                    <p id="update-version"></p>
+                    <div class="button-row">
+                        <button type="button" class="button button-primary" id="update-install" hidden>Update</button>
+                        <button type="button" class="button" id="update-rollback" hidden>Go back to the previous version</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-members" class="screen" hidden aria-labelledby="members-title">
+            <div class="screen-body">
+                <div class="screen-title">
+                    <h1 id="members-title" tabindex="-1">Choose members</h1>
+                    <fieldset class="segmented">
+                        <legend class="visually-hidden">How to choose members</legend>
+                        <label><input type="radio" name="mode" value="pick" checked> Member list</label>
+                        <label><input type="radio" name="mode" value="names"> List of names</label>
+                    </fieldset>
+                </div>
+
+                <div id="mode-pick" class="fill">
+                    <div class="toolbar">
+                        <div class="field search-field">
+                            <label class="visually-hidden" for="filter-search">Search by name</label>
+                            <input id="filter-search" type="search" placeholder="Search by name" autocomplete="off">
+                        </div>
+                        <div class="invite-field">
+                            <label for="filter-invite">Invite code or link <span class="badge">Experimental</span></label>
+                            <input id="filter-invite" autocomplete="off" spellcheck="false">
+                        </div>
+                        <button type="button" class="button" id="filter-apply">Apply invite</button>
+                        <button type="button" class="button" id="filter-clear" hidden>Clear invite</button>
+                    </div>
+
+                    <div class="table-wrap" id="table-wrap">
+                        <table class="member-table">
+                            <caption class="visually-hidden">Server members</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col"><span class="visually-hidden">Select</span></th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Username</th>
+                                </tr>
+                            </thead>
+                            <tbody id="member-rows"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="mode-names" class="fill" hidden>
+                    <div class="field fill">
+                        <label for="names-text">Usernames or display names, one per line. You can mix them.</label>
+                        <textarea id="names-text" spellcheck="false"></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="names-file">You can also add a .txt or .csv file</label>
+                        <input id="names-file" type="file" accept=".txt,.csv">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-actions">
+                <div class="pager" id="pick-footer">
+                    <p role="status" id="member-count"></p>
+                    <button type="button" class="button button-small" id="select-all">Select all shown</button>
+                    <button type="button" class="button button-small" id="select-none">Clear selection</button>
+                    <div class="per-page">
+                        <label for="per-page">Per page</label>
+                        <select id="per-page">
+                            <option value="fit">Fit to window</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div class="pager-buttons">
+                        <button type="button" class="button button-small" id="page-previous">Previous</button>
+                        <span id="page-label"></span>
+                        <button type="button" class="button button-small" id="page-next">Next</button>
+                    </div>
+                </div>
+                <button type="button" class="button button-primary" id="members-next">Next step</button>
+            </div>
+        </section>
+
+        <section id="view-roles" class="screen" hidden aria-labelledby="roles-title">
+            <div class="screen-body">
+                <h1 id="roles-title" tabindex="-1">Choose roles</h1>
+                <p id="roles-summary"></p>
+                <div class="role-columns fill">
+                    <fieldset class="card role-list">
+                        <legend>Add these roles</legend>
+                        <div id="roles-add" class="check-list"></div>
+                    </fieldset>
+                    <fieldset class="card role-list">
+                        <legend>Remove these roles</legend>
+                        <div id="roles-remove" class="check-list"></div>
+                    </fieldset>
+                </div>
+                <details id="blocked-details" hidden>
+                    <summary>Roles the bot cannot manage</summary>
+                    <ul id="blocked-list"></ul>
+                </details>
+            </div>
+            <div class="screen-actions">
+                <button type="button" class="button" id="roles-back">Back</button>
+                <button type="button" class="button button-primary" id="make-preview">Next step</button>
+            </div>
+        </section>
+
+        <section id="view-preview" class="screen" hidden aria-labelledby="preview-title">
+            <div class="screen-body">
+                <h1 id="preview-title" tabindex="-1">Preview</h1>
+                <p id="preview-intro"></p>
+                <dl class="stats" id="preview-stats"></dl>
+                <p class="notice notice-warning" id="preview-long" hidden>This batch is over about 900 changes. It will take more than 15 minutes, so only this panel can show progress the whole way.</p>
+                <div id="preview-lists" class="fill scroll-area stack"></div>
+            </div>
+            <div class="screen-actions">
+                <button type="button" class="button" id="preview-back">Back</button>
+                <button type="button" class="button button-primary" id="preview-confirm">Confirm</button>
+            </div>
+        </section>
+
+        <section id="view-progress" class="screen" hidden aria-labelledby="progress-title">
+            <div class="screen-body">
+                <h1 id="progress-title" tabindex="-1">Batch</h1>
+                <div class="card stack">
+                    <progress id="progress-bar" max="1" value="0" aria-labelledby="progress-title"></progress>
+                    <p id="progress-text" role="status"></p>
+                    <p class="notice notice-error" id="progress-unsaved" role="alert" hidden></p>
+                </div>
+                <p class="notice" id="progress-summary" role="status" hidden></p>
+                <div id="report-box" class="fill" hidden>
+                    <h2>Error report</h2>
+                    <pre class="report" id="report-text" tabindex="0"></pre>
+                </div>
+            </div>
+            <div class="screen-actions">
+                <button type="button" class="button button-danger" id="progress-stop">Stop</button>
+                <button type="button" class="button" id="download-errors" hidden>Download errors (CSV)</button>
+                <button type="button" class="button" id="download-results" hidden>Download results (CSV)</button>
+                <button type="button" class="button" id="undo-this" hidden>Undo this batch</button>
+                <button type="button" class="button" id="resume-this" hidden>Resume</button>
+                <button type="button" class="button button-primary" id="new-batch" hidden>New batch</button>
+            </div>
+        </section>
+
+        <section id="view-history" class="screen" hidden aria-labelledby="history-title">
+            <div class="screen-body">
+                <h1 id="history-title" tabindex="-1">Past batches</h1>
+                <div id="history-list" class="fill scroll-area stack"></div>
+                <div class="card toolbar">
+                    <div class="field fill-row">
+                        <label for="undo-file">Undo from a saved results or errors CSV</label>
+                        <input id="undo-file" type="file" accept=".csv">
+                    </div>
+                    <button type="button" class="button" id="undo-file-button">Preview undo</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

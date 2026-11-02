@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zombi Roles Setup Guide</title>
+    <link rel="stylesheet" href="../public/tokens.css">
+    <link rel="stylesheet" href="../public/guide.css">
+</head>
+<body>
+    <main class="guide">
+        <div class="guide-header"><span class="logo" aria-hidden="true"></span> Zombi Roles</div>
+        <h1>Setup guide for the bot owner</h1>
+        <p>This covers creating the Discord bot, installing the app, and publishing updates. For day-to-day use, see the Help page in the panel.</p>
+
+        <h2>1. Create the Discord application</h2>
+        <p>The application is the bot's identity. Use a separate one for testing, so a test copy never collides with the live one.</p>
+        <ol>
+            <li>Go to <code>https://discord.com/developers/applications</code> and click <strong>New Application</strong>.</li>
+            <li>Click <strong>Bot</strong>, and turn on <strong>Server Members Intent</strong>. Leave the other two off. The bot needs this to read the member list.</li>
+            <li>Click <strong>Installation</strong>, set <strong>Install Link</strong> to <strong>None</strong>, and save.</li>
+            <li>Click <strong>Bot</strong> again, turn off <strong>Public Bot</strong>, and save. Now only you can invite it.</li>
+        </ol>
+
+        <h2>2. Invite the bot</h2>
+        <ol>
+            <li>Click <strong>OAuth2</strong>, then find <strong>OAuth2 URL Generator</strong>.</li>
+            <li>Under Scopes, tick <code>bot</code> and <code>applications.commands</code>.</li>
+            <li>Under Bot Permissions, tick only <strong>Manage Roles</strong>.</li>
+            <li>Open the generated link, choose your server, and click <strong>Authorize</strong>.</li>
+        </ol>
+
+        <h2>3. Place the bot's role</h2>
+        <p>In <strong>Server Settings</strong>, then <strong>Roles</strong>, drag the bot's role above every role it should manage. Discord only lets a bot manage roles below its own. Keep it below roles it should never touch, such as moderators.</p>
+
+        <h2>4. Create a role for /rolebatch</h2>
+        <p>Create a role with no extra permissions, such as <code>Zombi Operator</code>, and give it to the people who may use the command. The Discord server's Members page is under <strong>People</strong> in Server Settings.</p>
+
+        <h2>5. Install on the computer that runs it</h2>
+        <ol>
+            <li>Download the latest Windows or Mac zip from the Releases page of the GitHub repo.</li>
+            <li>Extract it to a permanent folder. Do not run it from inside the zip.</li>
+            <li>Double-click <strong>Zombi Roles Launcher</strong>.</li>
+            <li>Under Bot, click <strong>Reset Token</strong> and <strong>Copy</strong>, then paste it on the setup screen. To find the server ID, turn on Developer Mode under <strong>User Settings</strong>, then <strong>Developer</strong>, and right-click the server icon.</li>
+            <li>Choose the role for <code>/rolebatch</code> when the panel asks.</li>
+        </ol>
+        <div class="note">
+            <p><strong>Run one copy at a time.</strong> Two copies with the same token both try to answer slash commands. Resetting a token cancels the old one everywhere, so any other computer needs the new one.</p>
+        </div>
+        <p>Saved data lives outside the app folder, in <code>%APPDATA%\Zombi Roles</code> on Windows and <code>~/Library/Application Support/Zombi Roles</code> on Mac. A new copy of the app on that computer reads the same token. Delete that folder to start fresh.</p>
+
+        <h2>6. Publish an update</h2>
+        <p>Updates are signed with a private key at <code>~/.zombi-roles/release-key.pem</code>, created once with <code>npm run release:key</code>. Keep a safe backup. If it is lost, installed copies can't accept new updates and need a fresh install. Never share it or put it in git.</p>
+        <ol>
+            <li>Merge your changes to <code>main</code>.</li>
+            <li>Raise the version in <code>package.json</code>, merge that, and update your local <code>main</code>.</li>
+            <li>Run <code>npm run release</code>. This builds the Windows zip, the Mac zip, and the signed update files in <code>dist</code>.</li>
+            <li>Publish them with the version tag, replacing the version below:</li>
+        </ol>
+        <pre><code>gh release create v1.0.1 dist/* --title "1.0.1" --notes "What changed"</code></pre>
+        <p>The notes appear in the update pop-up, so write them in plain words.</p>
+
+        <h2>Good to know</h2>
+        <ul>
+            <li>The app needs Node.js 24 or newer, and installs nothing else.</li>
+            <li>Developer commands: <code>npm test</code>, <code>npm start</code>, and <code>npm run demo</code> for 900 fake members.</li>
+            <li>The invite filter uses an endpoint Discord does not officially support. It may change without notice.</li>
+            <li>Windows shows Unknown Publisher because the app has no paid code signing certificate.</li>
+        </ul>
+    </main>
+</body>
+</html>

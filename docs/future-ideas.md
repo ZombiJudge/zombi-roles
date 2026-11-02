@@ -1,0 +1,8 @@
+# Future ideas
+
+Ideas for later. Nothing here is planned yet.
+
+- **Download list (CSV) in the member table:** save the filtered list, such as everyone who joined with one invite code or between two dates, without running a batch. Include each member's name, ID, roles, and join date, with join date filters and a Joined column in the member table, and include these files in the same automatic cleanup as batch data. The earlier join date filter code is in git history in `src/core/filters.js`.
+- **A /rolebatch with no options, if users ask for it:** today Discord shows the command's options as soon as it is typed, and a bot can't hide them. Removing the options would open the picker menus straight away. Names would move to a Paste names button with a pop-up text box, which also removes the comma limit. Files would move to a pop-up file upload, so no second command is needed. The tradeoff is losing autofill and the one-step command.
+- **Pop-up file upload:** Discord documents this for bots as a File Upload component (type 19) inside a Label (type 18), in modals only. It accepts up to 10 files and can filter by extension, such as `.txt` and `.csv`, though that only checks the extension. The file size limit is the user's own upload limit in that channel. The bot gets attachment IDs and file details, and downloads each file from Discord's CDN. Not tried on a real server yet.
+- **A branded Windows installer:** Unknown Publisher appears because the app has no paid code signing certificate, and a Windows `.bat` file can't show custom graphics. A real installer `.exe` could have zombi.dev artwork, but only a certificate removes the warning, and an unsigned installer may trigger stronger warnings. Revisit if this is shared beyond Alex and Sam.

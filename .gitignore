@@ -1,0 +1,21 @@
+# Secrets: the bot token must never reach git
+.env
+.env.*
+!.env.example
+
+# Batch data and results contain member names
+data/
+
+# Built releases
+dist/
+
+# Installed dependencies
+node_modules/
+
+# Logs and system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Local tool settings
+.claude/

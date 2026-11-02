@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zombi Roles Help</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="tokens.css">
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <main class="guide">
+        <div class="guide-header"><span class="logo" aria-hidden="true"></span> Zombi Roles</div>
+        <h1>How to use Zombi Roles</h1>
+        <p>Zombi Roles adds or removes Discord roles for lots of members at once. You never need to type a command. Everything happens by double-clicking a file, using a page in your browser, or using a slash command in Discord.</p>
+
+        <h2>Starting the app</h2>
+        <ol>
+            <li>Open the Zombi Roles folder.</li>
+            <li>Double-click <strong>Zombi Roles Launcher</strong>.</li>
+            <li>The control panel opens in your browser.</li>
+        </ol>
+        <p>It runs in the background, so closing the browser tab does not turn it off. To get back to the panel, double-click <strong>Zombi Roles Launcher</strong> again.</p>
+
+        <h3>The first time on Windows</h3>
+        <p>Windows may show a blue box saying it protected your PC, or a warning that says <strong>Unknown Publisher</strong>. This is normal for a small app like this one. Click <strong>More info</strong>, then <strong>Run anyway</strong>, or click <strong>Run</strong>.</p>
+
+        <h3>The first time on a Mac</h3>
+        <p>macOS may say it can't verify the file. Click <strong>Done</strong>, then right-click the file, choose <strong>Open</strong>, and click <strong>Open</strong> again. If there is no Open choice, go to System Settings, then Privacy &amp; Security, and click <strong>Open Anyway</strong>. If it asks to control Terminal, click <strong>OK</strong>.</p>
+
+        <h3>If it asks for Node.js</h3>
+        <p>Zombi Roles needs a free program called Node.js. The download page opens by itself. Choose the <strong>LTS</strong> version, install it with the normal options, then double-click <strong>Zombi Roles Launcher</strong> again.</p>
+
+        <h2>Turning it off</h2>
+        <p>Click <strong>Shut down</strong> at the top of the panel, then confirm. The bot stops until you start it again. It also stops when the computer sleeps, restarts, or shuts down.</p>
+
+        <h2>Running a batch in the panel</h2>
+        <h3>Step 1: Members</h3>
+        <p>Choose one of these at the top right:</p>
+        <ul>
+            <li><strong>Member list:</strong> tick members. You can search by name, or enter an invite code or link to show who joined with it. <strong>Select all shown</strong> picks everyone showing. The invite filter is experimental, so it may sometimes stop working.</li>
+            <li><strong>List of names:</strong> paste names, one per line, or add a .txt or .csv file. You can mix usernames and display names. Then click <strong>Check names</strong>.</li>
+        </ul>
+        <p>If a name has no match, or two members share it, a pop-up says what to fix. Zombi Roles never guesses. You can fix the name, or continue with the names that matched.</p>
+
+        <h3>Step 2: Roles</h3>
+        <p>Tick roles to add and roles to remove. A role that the bot can't manage is listed under <strong>Roles the bot cannot manage</strong>.</p>
+
+        <h3>Step 3: Preview</h3>
+        <p>Check the counts and the list. Nothing has changed yet. If it looks right, click <strong>Confirm</strong>.</p>
+
+        <h3>Step 4: Run</h3>
+        <p>Zombi Roles makes about one change a second, so 300 changes takes about 5 minutes. Click <strong>Stop</strong> at any time. Finished changes stay in place, and you can click <strong>Resume</strong> later.</p>
+
+        <h2>If something goes wrong</h2>
+        <p>An error report lists any changes that did not work and why. Click <strong>Download errors (CSV)</strong> to keep a copy.</p>
+        <p>To reverse a batch, go to <strong>Past batches</strong> and click <strong>Undo</strong>. You see a preview first. Undo only reverses changes that worked. If you were told some results could not be saved, keep the error CSV. Under <strong>Past batches</strong>, you can choose that file to undo those changes too.</p>
+
+        <h2>Using /rolebatch in Discord</h2>
+        <p>You need the Discord role chosen in Settings, and Zombi Roles must be running.</p>
+        <ol>
+            <li>Type <code>/rolebatch</code> in your server and press Enter. Only you can see the replies.</li>
+            <li>Pick members and roles from the menus, up to 25 of each, then click <strong>See preview</strong>. For a longer list, add a file with the <code>file</code> option, or use the panel.</li>
+            <li>Check the preview, then click <strong>Confirm</strong>.</li>
+        </ol>
+        <p>You can also fill in <code>names</code>, <code>add_roles</code>, and <code>remove_roles</code> yourself, with commas between entries.</p>
+        <p>Discord only lets the bot update its message for 15 minutes. For longer batches you get a direct message when it finishes. The panel shows progress the whole time.</p>
+
+        <h2>Updates</h2>
+        <p>When a new version is ready, a pop-up offers <strong>Update now</strong>. Your token, settings, and results are kept. If something looks wrong afterward, go to <strong>Settings</strong> and click <strong>Go back to the previous version</strong>.</p>
+
+        <h2>Common problems</h2>
+        <h3>Discord says the application did not respond</h3>
+        <p>Zombi Roles is not running. Double-click <strong>Zombi Roles Launcher</strong>.</p>
+        <h3>The browser never opens</h3>
+        <p>Restart the computer, then double-click <strong>Zombi Roles Launcher</strong> again. If it still does not open, ask whoever set it up for you.</p>
+        <h3>The panel says Connection lost</h3>
+        <p>Zombi Roles stopped, often because the computer went to sleep. Double-click <strong>Zombi Roles Launcher</strong>, and the page reconnects. If a batch was running, resume it from <strong>Past batches</strong>.</p>
+        <h3>Discord rejected the bot token</h3>
+        <p>The saved token no longer works. Ask whoever set up the bot for a new one, then paste it in <strong>Settings</strong>. Treat a token like a password, and never share it in a message.</p>
+
+        <h2>Your data</h2>
+        <p>Your token, settings, and results stay on this computer. Batch files are deleted automatically after the number of days set in Settings, 30 by default.</p>
+    </main>
+</body>
+</html>
