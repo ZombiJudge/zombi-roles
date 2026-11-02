@@ -921,6 +921,11 @@ function wireEvents() {
 
     action(element('update-install'), installUpdate);
 
+    action(element('restart-app'), async () => {
+        await api('/api/restart', {});
+        await waitForRestart();
+    });
+
     action(element('update-rollback'), async () => {
         await api('/api/update/rollback', {});
         await waitForRestart();

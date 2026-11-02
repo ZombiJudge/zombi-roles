@@ -303,6 +303,25 @@ test('stops a running batch', async () => {
     assert.ok(status.ok < 4);
 });
 
+test('restart needs an installed copy and no running batch', async () => {
+    await setup();
+    assert.equal((await call('/api/restart', {})).status, 400);
+
+    let restarts = 0;
+    await panel.close();
+    panel = createPanel({ dataDir, createClient: fakeClient, delayMs: 20, updater: { enabled: true }, onRestart: () => restarts++ });
+    port = await panel.listen();
+
+    const { data: preview } = await call('/api/preview', { memberIds: members.map(({ id }) => id), addRoleIds: ['200'] });
+    await call('/api/confirm', { previewId: preview.id });
+    assert.equal((await call('/api/restart', {})).status, 400);
+
+    await finished();
+    assert.equal((await call('/api/restart', {})).status, 200);
+    await new Promise((done) => setTimeout(done, 300));
+    assert.equal(restarts, 1);
+});
+
 test('shuts down only when no batch is running', async () => {
     await setup();
     panel.batches.delayMs = 20;
