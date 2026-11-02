@@ -30,4 +30,4 @@ Design rules are in [docs/design.md](docs/design.md), and setup is in [docs/setu
 
 ## Copyright
 
-Copyright (c) 2026 zombi.dev. All rights reserved. The bundled fonts keep their own SIL Open Font License, in `public/fonts`.
+Copyright (c) 2026 Zombi Enterprises, LLC. All rights reserved. The bundled fonts keep their own SIL Open Font License, in `public/fonts`.
