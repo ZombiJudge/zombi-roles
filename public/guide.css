@@ -95,6 +95,14 @@ pre code {
     background: none;
 }
 
+.guide-footer {
+    margin-top: var(--space-8);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--line);
+    color: var(--ink-muted);
+    font-size: 0.875rem;
+}
+
 .note {
     margin: var(--space-3) 0;
     padding: var(--space-3);
