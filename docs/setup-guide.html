@@ -68,8 +68,8 @@
             <li>Run <code>npm run release</code>. This builds the Windows zip, the Mac zip, and the signed update files in <code>dist</code>.</li>
             <li>Publish them with the version tag, replacing the version below:</li>
         </ol>
-        <pre><code>gh release create v1.0.1 dist/* --title "1.0.1" --notes "What changed"</code></pre>
-        <p>The notes appear in the update pop-up, so write them in plain words.</p>
+        <pre><code>gh release create v1.0.1 dist/* --repo ZombiJudge/zombi-roles --title "1.0.1" --notes "What changed"</code></pre>
+        <p>The notes appear in the update pop-up, so write them in plain words. Keep <code>--repo</code>: this folder also links to the archive repo, so without it <code>gh</code> stops and asks which one to use. Installed copies only look for updates in <code>ZombiJudge/zombi-roles</code>.</p>
 
         <h2>Good to know</h2>
         <ul>
