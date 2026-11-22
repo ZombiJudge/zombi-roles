@@ -1,10 +1,10 @@
-// Runs the panel with 900 made-up members to check the design. It never contacts Discord
+// Runs the panel with 900 made-up members and made-up chats to check the design. It never contacts Discord
 // and ignores the real settings. npm run demo
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { createPanel } from '../src/panel/server.js';
 import { saveSettings } from '../src/panel/settings.js';
-import { FakeServer } from '../test/helpers/fake-discord.js';
+import { FakeServer, makeMessages } from '../test/helpers/fake-discord.js';
 
 const PORT = 4647;
 const MEMBER_COUNT = 900;
@@ -35,6 +35,42 @@ function fakeMember(i) {
     };
 }
 
+const CHANNELS = [
+    { id: '400001', name: 'general', type: 0, isForum: false, hasThreads: true },
+    { id: '400002', name: 'announcements', type: 5, isForum: false, hasThreads: true },
+    { id: '400003', name: 'deck-help', type: 15, isForum: true, hasThreads: true },
+    { id: '400004', name: 'Voice lounge', type: 2, isForum: false, hasThreads: false },
+];
+const THREADS = {
+    400001: [{ id: '500001', name: 'Saturday side events', parentId: '400001' }],
+    400003: [
+        { id: '500101', name: 'Is this deck legal?', parentId: '400003' },
+        { id: '500102', name: 'Budget aggro list', parentId: '400003' },
+    ],
+};
+const CHATS = {
+    400001: makeMessages(600, { idStart: 10000, startsThreadId: '500001' }),
+    400002: makeMessages(12, { idStart: 20000 }),
+    400004: [],
+    500001: makeMessages(25, { idStart: 30000 }),
+    500101: makeMessages(8, { idStart: 40000 }),
+    500102: makeMessages(15, { idStart: 41000 }),
+};
+const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+
+// Hands out messages 100 at a time, slowly, so the progress line can be seen.
+async function demoMessages(channelId, onPage = () => {}) {
+    const all = CHATS[channelId] ?? [];
+
+    for (let read = 100; read < all.length; read += 100) {
+        await pause(300);
+        onPage(read);
+    }
+
+    onPage(all.length);
+    return all;
+}
+
 const members = Array.from({ length: MEMBER_COUNT }, (_, i) => fakeMember(i));
 const server = new FakeServer(members, { failIds: [members[11].id, members[12].id] });
 const client = {
@@ -43,6 +79,9 @@ const client = {
     roles: async () => ROLES,
     botMember: async () => ({ roleIds: ['200006'] }),
     members: async () => server.snapshot(),
+    channels: async () => CHANNELS,
+    messages: demoMessages,
+    threads: async (channel) => ({ threads: THREADS[channel.id] ?? [], privateSkipped: channel.id === '400001' }),
     memberIdsByInvite: async () => ({ ids: members.filter((_, i) => i % 7 === 0).map(({ id }) => id), complete: true }),
 };
 

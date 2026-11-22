@@ -1,7 +1,14 @@
+import { readAllPages, readAllThreadPages } from '../core/chat.js';
 import { FatalBatchError, RateLimitError } from '../core/runner.js';
 
 const API = 'https://discord.com/api/v10';
 const PAGE_SIZE = 1000;
+const MESSAGE_PAGE_SIZE = 100;
+
+// Channel types: text, voice, announcement, stage, forum, media. Voice and stage channels have a text chat.
+const READABLE_CHANNELS = new Set([0, 2, 5, 13, 15, 16]);
+const THREAD_PARENTS = new Set([0, 5, 15, 16]);
+const FORUMS = new Set([15, 16]);
 
 function toMember({ user, nick, roles }) {
     return {
@@ -13,6 +20,36 @@ function toMember({ user, nick, roles }) {
         isBot: user.bot === true,
     };
 }
+
+function toMessage(raw) {
+    const name = (user) => user?.global_name ?? user?.username ?? 'Unknown';
+
+    return {
+        id: raw.id,
+        type: raw.type,
+        time: raw.timestamp,
+        editedTime: raw.edited_timestamp ?? null,
+        authorId: raw.author?.id ?? '',
+        authorName: name(raw.author),
+        authorUsername: raw.author?.username ?? '',
+        isBot: raw.author?.bot === true,
+        content: raw.content ?? '',
+        mentions: Object.fromEntries((raw.mentions ?? []).map((user) => [user.id, name(user)])),
+        replyTo: raw.message_reference?.message_id && raw.type === 19
+            ? {
+                  id: raw.message_reference.message_id,
+                  authorName: raw.referenced_message ? name(raw.referenced_message.author) : null,
+                  snippet: raw.referenced_message?.content ?? '',
+              }
+            : null,
+        attachments: (raw.attachments ?? []).map(({ filename, url }) => ({ name: filename, url })),
+        embedCount: raw.embeds?.length ?? 0,
+        stickerNames: (raw.sticker_items ?? []).map(({ name: sticker }) => sticker),
+        startsThreadId: raw.thread?.id ?? null,
+    };
+}
+
+const toThread = ({ id, name, parent_id }) => ({ id, name, parentId: parent_id });
 
 // Talks to Discord's REST API with built-in fetch, so it installs nothing and is easy to port.
 export class DiscordClient {
@@ -176,5 +213,55 @@ export class DiscordClient {
             const last = found.members.at(-1).member;
             after = { user_id: last.user.id, guild_joined_at: Date.parse(last.joined_at) };
         }
+    }
+
+    // Channels with messages a person can read, in the order Discord lists them.
+    async channels() {
+        const all = await this.patiently(() => this.request('GET', `/guilds/${this.serverId}/channels`));
+
+        return all
+            .filter(({ type }) => READABLE_CHANNELS.has(type))
+            .toSorted((a, b) => a.position - b.position || a.name.localeCompare(b.name))
+            .map(({ id, name, type }) => ({ id, name, type, isForum: FORUMS.has(type), hasThreads: THREAD_PARENTS.has(type) }));
+    }
+
+    // Every message in a channel or thread, oldest first. Needs the Message Content intent for the text.
+    async messages(channelId, onPage) {
+        const page = (before) => this.patiently(() => this.request('GET', `/channels/${channelId}/messages?limit=${MESSAGE_PAGE_SIZE}${before ? `&before=${before}` : ''}`));
+        return (await readAllPages(page, { pageSize: MESSAGE_PAGE_SIZE, onPage })).map(toMessage);
+    }
+
+    archivedThreads(channelId, kind) {
+        return readAllThreadPages(async (before) => {
+            const path = `/channels/${channelId}/threads/archived/${kind}?limit=${MESSAGE_PAGE_SIZE}${before ? `&before=${encodeURIComponent(before)}` : ''}`;
+            const { threads, has_more } = await this.patiently(() => this.request('GET', path));
+
+            return { items: threads.map(toThread), hasMore: has_more, next: threads.at(-1)?.thread_metadata?.archive_timestamp };
+        });
+    }
+
+    // Open and closed threads of a channel, or the posts of a forum. Closed private threads need
+    // Manage Threads, so if Discord refuses them, privateSkipped says so and the rest still comes back.
+    async threads(channel) {
+        const active = (await this.patiently(() => this.request('GET', `/guilds/${this.serverId}/threads/active`))).threads
+            .filter(({ parent_id }) => parent_id === channel.id)
+            .map(toThread);
+        const archived = await this.archivedThreads(channel.id, 'public');
+        let archivedPrivate = [];
+        let privateSkipped = false;
+
+        if (channel.type === 0) {
+            try {
+                archivedPrivate = await this.archivedThreads(channel.id, 'private');
+            } catch (error) {
+                if (error.status !== 403) {
+                    throw error;
+                }
+
+                privateSkipped = true;
+            }
+        }
+
+        return { threads: [...active, ...archived, ...archivedPrivate], privateSkipped };
     }
 }

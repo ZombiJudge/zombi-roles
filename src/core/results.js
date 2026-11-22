@@ -4,7 +4,7 @@ export const RESULT_COLUMNS = ['time', 'batch', 'member_id', 'member', 'action',
 
 // Member names are chosen by members, and a spreadsheet would run one starting
 // with these characters as a formula, so it gets a harmless leading quote.
-function csvField(value) {
+export function csvField(value) {
     let text = String(value ?? '');
 
     if (/^[=+\-@\t\r]/.test(text)) {
