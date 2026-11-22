@@ -63,3 +63,36 @@ export function fakeSleep() {
     sleep.waits = [];
     return sleep;
 }
+
+const CHAT_NAMES = ['Ash', 'Bones', 'Cass', 'Dusk', 'Ember', 'Fern', '=Grim', 'Hollow'];
+const CHAT_LINES = ['Who is bringing the playmats?', 'Round 3 pairings are up.', 'GG, that was close!', 'Deck list check is at the front desk.', 'Can someone explain the stack again?\nI keep forgetting.', 'Top 8 starts in 10 minutes.'];
+
+// Made-up messages in the shape DiscordClient.messages() returns, oldest first.
+// Includes replies, edits, attachments, mentions, a join, and a name that starts like a spreadsheet formula.
+export function makeMessages(count, { idStart = 5000, startsThreadId = null } = {}) {
+    const start = Date.parse('2026-10-01T18:00:00Z');
+
+    return Array.from({ length: count }, (_, i) => {
+        const name = CHAT_NAMES[i % CHAT_NAMES.length];
+        const id = String(idStart + i);
+        const replyTo = i > 0 && i % 7 === 0 ? { id: String(idStart + i - 3), authorName: CHAT_NAMES[(i - 3) % CHAT_NAMES.length], snippet: CHAT_LINES[(i - 3) % CHAT_LINES.length] } : null;
+
+        return {
+            id,
+            type: i % 50 === 1 ? 7 : replyTo ? 19 : 0,
+            time: new Date(start + i * 60_000).toISOString(),
+            editedTime: i % 11 === 0 ? new Date(start + i * 60_000 + 30_000).toISOString() : null,
+            authorId: String(300000 + (i % CHAT_NAMES.length)),
+            authorName: name,
+            authorUsername: name.replace('=', '').toLowerCase(),
+            isBot: false,
+            content: i % 50 === 1 ? '' : i % 13 === 0 ? `<@300001> ${CHAT_LINES[i % CHAT_LINES.length]}` : CHAT_LINES[i % CHAT_LINES.length],
+            mentions: i % 13 === 0 ? { 300001: 'Bones' } : {},
+            replyTo,
+            attachments: i % 17 === 0 ? [{ name: `decklist-${i}.png`, url: `https://cdn.discordapp.com/attachments/1/${id}/decklist-${i}.png` }] : [],
+            embedCount: 0,
+            stickerNames: [],
+            startsThreadId: i === 4 ? startsThreadId : null,
+        };
+    });
+}

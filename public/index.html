@@ -23,6 +23,7 @@
         <nav aria-label="Main">
             <button type="button" class="nav-button" data-nav="build">New batch</button>
             <button type="button" class="nav-button" data-nav="history">Past batches</button>
+            <button type="button" class="nav-button" data-nav="chat">Download chat</button>
             <button type="button" class="nav-button" data-nav="setup">Settings</button>
             <a class="nav-button" href="help.html" target="_blank" rel="noopener">Help</a>
             <button type="button" class="nav-button" id="shut-down">Shut down</button>
@@ -61,7 +62,7 @@
                     <div class="field">
                         <label for="setup-retention">Keep batch files for this many days</label>
                         <input id="setup-retention" type="number" min="1" max="3650" required>
-                        <p class="hint">Older member lists and results are deleted automatically.</p>
+                        <p class="hint">Older member lists, results and chat downloads are deleted automatically.</p>
                     </div>
                     <div class="field" id="setup-role-field" hidden>
                         <label for="setup-role">Who can use /rolebatch</label>
@@ -236,6 +237,27 @@
                     </div>
                     <button type="button" class="button" id="undo-file-button">Preview undo</button>
                 </div>
+            </div>
+        </section>
+
+        <section id="view-chat" class="screen" hidden aria-labelledby="chat-title">
+            <div class="screen-body">
+                <h1 id="chat-title" tabindex="-1">Download chat</h1>
+                <p>Saves every message in a channel, with its threads or forum posts, as a web page you can search and as a CSV file.</p>
+                <div class="card toolbar">
+                    <div class="field fill-row">
+                        <label for="chat-channel">Channel</label>
+                        <select id="chat-channel"></select>
+                    </div>
+                    <button type="button" class="button button-primary" id="chat-start">Start</button>
+                </div>
+                <div class="card stack" id="chat-progress" hidden>
+                    <p id="chat-status" role="status"></p>
+                    <div id="chat-warnings" class="stack"></div>
+                </div>
+                <h2>Saved chats</h2>
+                <p class="hint" id="chat-retention"></p>
+                <div id="chat-list" class="fill scroll-area stack"></div>
             </div>
         </section>
     </main>

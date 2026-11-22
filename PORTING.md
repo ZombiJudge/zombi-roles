@@ -9,12 +9,12 @@ Zombi Roles will later become a tool inside zombi.dev, which is Laravel 13 with 
 | Today | In zombi.dev |
 |---|---|
 | `src/core/names.js`, `match.js`, `invite.js`, `role-input.js`, `autofill.js` | Plain PHP service classes, such as `App\Services\ZombiRoles` |
-| `src/core/plan.js`, `roles.js`, `undo.js`, `report.js`, `results.js` | PHP service classes |
+| `src/core/plan.js`, `roles.js`, `undo.js`, `report.js`, `results.js`, `chat.js` | PHP service classes |
 | `src/core/runner.js` | A queued Laravel job, driven by cron. See below |
 | `src/discord/client.js` | A small class using Laravel's HTTP client |
 | `src/discord/gateway.js` | Removed. An interactions route replaces it |
 | `src/bot/rolebatch.js`, `messages.js` | Controller and service for the interactions route. Message payloads carry over nearly unchanged |
-| `src/panel/server.js`, `batches.js`, `settings.js` | Laravel controllers, Eloquent models, and config. Replaced by the site's login and permissions |
+| `src/panel/server.js`, `batches.js`, `chats.js`, `settings.js` | Laravel controllers, Eloquent models, and config. Replaced by the site's login and permissions |
 | `public/` | React pages with the same step flow and zombi.dev components. The tokens already match |
 | `launcher.mjs`, `starters/`, `src/update/`, `scripts/release*.js` | Removed. Deployment replaces them |
 
@@ -31,6 +31,8 @@ Zombi Roles will later become a tool inside zombi.dev, which is Laravel 13 with 
 ## Privacy
 
 zombi.dev must be GDPR compliant. Keep stored member data to names and IDs, run the retention cleanup as a scheduled job, and cover this feature in the privacy notice. Join dates were removed on purpose until the member list download in `docs/future-ideas.md` is built.
+
+Chat downloads hold members' messages, which is personal data too. They follow the same retention cleanup as batch files (`src/panel/chats.js`), and the privacy notice must cover them. In zombi.dev, read the pages in a queued job and keep the finished files only until the retention cleanup. `src/core/chat.js` holds the paging and the HTML and CSV formats.
 
 ## Worth keeping
 

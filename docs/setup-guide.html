@@ -17,7 +17,7 @@
         <p>The application is the bot's identity. Use a separate one for testing, so a test copy never collides with the live one.</p>
         <ol>
             <li>Go to <code>https://discord.com/developers/applications</code> and click <strong>New Application</strong>.</li>
-            <li>Click <strong>Bot</strong>, and turn on <strong>Server Members Intent</strong>. Leave the other two off. The bot needs this to read the member list.</li>
+            <li>Click <strong>Bot</strong>, and turn on <strong>Server Members Intent</strong>. The bot needs this to read the member list. Turn on <strong>Message Content Intent</strong> too if you want to use <strong>Download chat</strong>, or the saved chats have no text. Leave <strong>Presence Intent</strong> off.</li>
             <li>Click <strong>Installation</strong>, set <strong>Install Link</strong> to <strong>None</strong>, and save.</li>
             <li>Click <strong>Bot</strong> again, turn off <strong>Public Bot</strong>, and save. Now only you can invite it.</li>
         </ol>
@@ -29,6 +29,9 @@
             <li>Under Bot Permissions, tick only <strong>Manage Roles</strong>.</li>
             <li>Open the generated link, choose your server, and click <strong>Authorize</strong>.</li>
         </ol>
+
+        <h3>For Download chat</h3>
+        <p>To save a channel's messages, the bot also needs <strong>View Channels</strong> and <strong>Read Message History</strong> in that channel. Give them to the bot's role in the channel's settings, or tick them in Bot Permissions before opening the invite link. To include closed private threads, also give it <strong>Manage Threads</strong>.</p>
 
         <h3>If someone else owns the server</h3>
         <p>With Public Bot turned off, only the person who created the application can use the invite link. They also need the <strong>Manage Server</strong> permission on the server they're adding it to. You have two ways to set this up:</p>

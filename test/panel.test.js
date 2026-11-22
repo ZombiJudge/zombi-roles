@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, afterEach, beforeEach, test } from 'node:test';
 import { createPanel } from '../src/panel/server.js';
-import { FakeServer, fakeSleep, makeMembers } from './helpers/fake-discord.js';
+import { FakeServer, fakeSleep, makeMembers, makeMessages } from './helpers/fake-discord.js';
 
 const folders = [];
 after(() => folders.forEach((folder) => rmSync(folder, { recursive: true })));
@@ -36,6 +36,27 @@ function fakeClient() {
 
             return server.snapshot();
         },
+        channels: async () => [
+            { id: '42', name: 'general', type: 0, isForum: false, hasThreads: true },
+            { id: '43', name: 'secret', type: 0, isForum: false, hasThreads: true },
+        ],
+        messages: async (channelId, onPage = () => {}) => {
+            if (channelId === '43' || channelId === '61') {
+                throw Object.assign(new Error('Missing Access'), { status: 403 });
+            }
+
+            await clientOptions.messagesWait;
+            const messages = channelId === '42' ? makeMessages(7, { startsThreadId: '60' }) : makeMessages(2, { idStart: 7000 });
+            onPage(messages.length);
+            return messages;
+        },
+        threads: async () => ({
+            threads: [
+                { id: '61', name: 'Locked', parentId: '42' },
+                { id: '60', name: 'Side events', parentId: '42' },
+            ],
+            privateSkipped: true,
+        }),
         memberIdsByInvite: async () => {
             if (clientOptions.inviteFails) {
                 throw new Error('Gone');
@@ -349,4 +370,102 @@ test('only runs one batch at a time', async () => {
 
     assert.equal(refused.status, 400);
     await finished();
+});
+
+const downloadChat = async (channelId = '42') => {
+    const started = await call('/api/chat/start', { channelId });
+    await panel.chats.running;
+    return { started, status: (await call('/api/chat')).data };
+};
+
+test('downloads a channel with its threads as HTML and CSV', async () => {
+    await setup();
+
+    assert.deepEqual((await call('/api/channels')).data.map(({ name }) => name), ['general', 'secret']);
+
+    const { started, status } = await downloadChat();
+
+    assert.deepEqual(started.data, { number: 1 });
+    assert.equal(status.result, 'done');
+    assert.equal(status.messages, 9);
+    assert.equal(status.threads, 1);
+    assert.equal(status.skippedThreads, 1);
+    assert.equal(status.privateSkipped, true);
+    assert.equal(status.missingContent, false);
+    assert.deepEqual((await call('/api/chats')).data.map(({ number, channelName }) => ({ number, channelName })), [{ number: 1, channelName: 'general' }]);
+
+    const page = await call('/api/chats/1/chat.html');
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-type'), /^text\/html/);
+    assert.match(page.headers.get('content-disposition'), /^attachment; filename="chat-1\.html"$/);
+    assert.match(page.text, /<h1>#general<\/h1>/);
+    assert.match(page.text, /Thread: Side events/);
+
+    const csv = await call('/api/chats/1/chat.csv');
+    assert.match(csv.headers.get('content-type'), /^text\/csv/);
+    assert.equal(csv.text.match(/^2026-/gm).length, 9);
+    assert.match(csv.text, /,'=Grim,/);
+    assert.match(csv.text, /,60,Side events,/);
+
+    assert.equal((await call('/api/chats/9/chat.csv')).status, 404);
+    assert.equal((await call('/api/chats/1/chat.html', undefined, { 'X-Zombi-Session': 'wrong' })).status, 403);
+});
+
+test('says what to fix when the bot cannot read a channel, and refuses unknown channels', async () => {
+    await setup();
+
+    const { status } = await downloadChat('43');
+    assert.equal(status.result, 'failed');
+    assert.match(status.error, /View Channel and Read Message History/);
+    assert.deepEqual((await call('/api/chats')).data, []);
+
+    assert.equal((await call('/api/chat/start', { channelId: '999' })).status, 400);
+});
+
+test('only downloads one chat at a time', async () => {
+    await setup();
+    let release;
+    clientOptions.messagesWait = new Promise((done) => (release = done));
+
+    await call('/api/chat/start', { channelId: '42' });
+    assert.equal((await call('/api/chat')).data.state, 'running');
+
+    const second = await call('/api/chat/start', { channelId: '42' });
+    assert.equal(second.status, 400);
+    assert.match(second.data.error, /already running/);
+
+    release();
+    await panel.chats.running;
+    assert.equal((await call('/api/chat')).data.state, 'finished');
+});
+
+test('deletes old chat files with the batch files, and never reuses a number', async () => {
+    await setup();
+    await downloadChat();
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const files = () => readdirSync(join(dataDir, 'chats')).sort();
+
+    assert.equal(panel.chats.deleteOlderThan(30, Date.now() + 29 * dayMs), 0);
+    assert.deepEqual(files(), ['chat-1.csv', 'chat-1.html', 'chat-1.json', 'last-chat.txt']);
+
+    assert.equal(panel.chats.deleteOlderThan(30, Date.now() + 31 * dayMs), 1);
+    assert.deepEqual(files(), ['last-chat.txt']);
+    assert.equal((await call('/api/chat')).data.state, 'idle');
+
+    const { started } = await downloadChat();
+    assert.equal(started.data.number, 2);
+});
+
+test('the daily cleanup covers chat files', async () => {
+    await setup();
+    await downloadChat();
+
+    const old = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+    for (const file of ['chat-1.csv', 'chat-1.html', 'chat-1.json']) {
+        utimesSync(join(dataDir, 'chats', file), old, old);
+    }
+
+    panel.cleanUp();
+    assert.deepEqual(readdirSync(join(dataDir, 'chats')), ['last-chat.txt']);
 });

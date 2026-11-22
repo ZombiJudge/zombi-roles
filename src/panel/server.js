@@ -11,6 +11,7 @@ import { parseResults } from '../core/results.js';
 import { checkRoles } from '../core/roles.js';
 import { FatalBatchError } from '../core/runner.js';
 import { BatchManager } from './batches.js';
+import { ChatExports } from './chats.js';
 import { cleanOperatorName, loadSettings, saveSettings } from './settings.js';
 
 const PUBLIC_DIR = fileURLToPath(new URL('../../public', import.meta.url));
@@ -89,6 +90,7 @@ function connectionMessage(error) {
 export function createPanel({ dataDir, createClient, delayMs, sleep, port = 0, onSettingsSaved = () => {}, updater = null, onRestart = () => {}, onShutdown = () => {} }) {
     const session = randomBytes(32).toString('hex');
     const batches = new BatchManager({ dataDir, delayMs, sleep });
+    const chats = new ChatExports({ dataDir });
     let boundPort = port;
     let preview = null;
 
@@ -176,6 +178,7 @@ export function createPanel({ dataDir, createClient, delayMs, sleep, port = 0, o
 
             saveSettings(dataDir, next);
             batches.deleteOlderThan(next.retentionDays);
+            chats.deleteOlderThan(next.retentionDays);
             onSettingsSaved();
 
             try {
@@ -311,6 +314,28 @@ export function createPanel({ dataDir, createClient, delayMs, sleep, port = 0, o
             return {};
         },
 
+        'GET /api/channels': async () => client().channels(),
+
+        'POST /api/chat/start': async ({ channelId }) => {
+            const discord = client();
+            const [channels, roles, server] = await Promise.all([discord.channels(), discord.roles(), discord.server()]);
+            const channel = channels.find(({ id }) => id === String(channelId ?? ''));
+
+            if (!channel) {
+                throw new RangeError('That channel is not in this server.');
+            }
+
+            const lookups = {
+                channels: Object.fromEntries(channels.map(({ id, name }) => [id, name])),
+                roles: Object.fromEntries(roles.map(({ id, name }) => [id, name])),
+            };
+
+            return { number: chats.start({ client: discord, channel, serverName: server.name, lookups }) };
+        },
+
+        'GET /api/chat': async () => chats.status(),
+        'GET /api/chats': async () => chats.list(),
+
         'GET /api/batch': async () => batches.status(),
         'GET /api/batches': async () => batches.list(),
     };
@@ -323,6 +348,27 @@ export function createPanel({ dataDir, createClient, delayMs, sleep, port = 0, o
             const csv = type === 'results' ? batches.resultsCsv(batch) : batches.errorCsv(Number(batch));
             response.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': 'text/csv; charset=utf-8' });
             response.end(csv);
+            return;
+        }
+
+        const chat = /^\/api\/chats\/(\d+)\/chat\.(html|csv)$/.exec(url.pathname);
+
+        if (chat && request.method === 'GET') {
+            const [, number, extension] = chat;
+            let text;
+
+            try {
+                text = chats.file(Number(number), extension);
+            } catch {
+                throw new HttpError(404, 'That chat file was deleted by the automatic cleanup.');
+            }
+
+            response.writeHead(200, {
+                ...SECURITY_HEADERS,
+                'Content-Type': extension === 'html' ? 'text/html; charset=utf-8' : 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="chat-${number}.${extension}"`,
+            });
+            response.end(text);
             return;
         }
 
@@ -387,8 +433,13 @@ export function createPanel({ dataDir, createClient, delayMs, sleep, port = 0, o
 
     return {
         batches,
+        chats,
         session,
-        cleanUp: () => batches.deleteOlderThan(settings().retentionDays),
+        cleanUp: () => {
+            const { retentionDays } = settings();
+            batches.deleteOlderThan(retentionDays);
+            chats.deleteOlderThan(retentionDays);
+        },
         listen: () =>
             new Promise((done, fail) => {
                 server.once('error', fail);

@@ -26,6 +26,7 @@ const state = {
     update: { enabled: false },
     askedForRole: false,
     restarting: false,
+    chatPolling: null,
 };
 
 async function api(path, body) {
@@ -37,7 +38,7 @@ async function api(path, body) {
         throw new Error('That did not work because Zombi Roles is not running. Double-click Zombi Roles Launcher.');
     });
 
-    if (path.endsWith('.csv') && response.ok) {
+    if (/\.(csv|html)$/.test(path) && response.ok) {
         return response.text();
     }
 
@@ -177,9 +178,9 @@ function show(view) {
 const displayName = (member) => member.nickname ?? member.globalName ?? member.username;
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
-function save(filename, text) {
+function save(filename, text, type = 'text/csv') {
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+    link.href = URL.createObjectURL(new Blob([text], { type }));
     link.download = filename;
     link.click();
     URL.revokeObjectURL(link.href);
@@ -510,6 +511,139 @@ function renderHistory(batches) {
     );
 }
 
+function chatWarnings(chat) {
+    const warnings = [];
+
+    if (chat.missingContent) {
+        warnings.push('Almost every message came back with no text. Turn on Message Content Intent on the Bot page in the Discord Developer Portal, then download this channel again.');
+    }
+
+    if (chat.privateSkipped) {
+        warnings.push('Closed private threads were left out. Give the bot Manage Threads in this channel to include them.');
+    }
+
+    if (chat.skippedThreads > 0) {
+        warnings.push(`${plural(chat.skippedThreads, 'thread')} could not be read and ${chat.skippedThreads === 1 ? 'was' : 'were'} left out.`);
+    }
+
+    return warnings;
+}
+
+function chatSummary(chat) {
+    const threads = chat.threads > 0 ? ` and ${plural(chat.threads, 'thread')}` : '';
+    return `${plural(chat.messages, 'message')}${threads}`;
+}
+
+function renderChats(chats) {
+    const box = element('chat-list');
+    element('chat-retention').textContent = `Saved chats are deleted after ${plural(state.settings.retentionDays, 'day')}, like batch files. You can change this in Settings.`;
+
+    if (chats.length === 0) {
+        box.textContent = 'No saved chats yet.';
+        return;
+    }
+
+    box.replaceChildren(
+        ...chats.map((chat) => {
+            const card = document.createElement('div');
+            const title = document.createElement('h3');
+            const info = document.createElement('p');
+            const buttons = document.createElement('div');
+
+            card.className = 'card stack';
+            title.textContent = `#${chat.channelName}`;
+            info.textContent = `${new Date(chat.createdAt).toLocaleString()}, ${chatSummary(chat)}`;
+            buttons.className = 'button-row';
+
+            for (const [label, extension, type] of [
+                ['Download HTML', 'html', 'text/html'],
+                ['Download CSV', 'csv', 'text/csv'],
+            ]) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'button';
+                button.textContent = label;
+                button.setAttribute('aria-label', `${label} of #${chat.channelName}, ${new Date(chat.createdAt).toLocaleString()}`);
+                action(button, async () => save(`chat-${chat.channelName}-${chat.number}.${extension}`, await api(`/api/chats/${chat.number}/chat.${extension}`), type));
+                buttons.append(button);
+            }
+
+            card.append(title, info, ...chatWarnings(chat).map((text) => Object.assign(document.createElement('p'), { className: 'notice notice-warning', textContent: text })), buttons);
+            return card;
+        }),
+    );
+}
+
+function renderChatStatus(status) {
+    const running = status.state === 'running';
+    element('chat-progress').hidden = status.state === 'idle';
+
+    if (running) {
+        const threads = status.threadsTotal > 0 ? `, thread ${Math.min(status.threadsDone + 1, status.threadsTotal)} of ${status.threadsTotal}` : '';
+        element('chat-status').textContent = `Reading #${status.channelName}: ${status.read.toLocaleString()} messages so far${threads}. You can leave this page.`;
+        element('chat-warnings').replaceChildren();
+    } else if (status.result === 'failed') {
+        element('chat-status').textContent = status.error;
+        element('chat-warnings').replaceChildren();
+    } else if (status.result === 'done') {
+        element('chat-status').textContent = `Saved #${status.channelName}: ${chatSummary(status)}. Download it below.`;
+        element('chat-warnings').replaceChildren(...chatWarnings(status).map((text) => Object.assign(document.createElement('p'), { className: 'notice notice-warning', textContent: text })));
+    }
+}
+
+async function followChat() {
+    clearInterval(state.chatPolling);
+
+    const tick = async () => {
+        const status = await api('/api/chat');
+        renderChatStatus(status);
+
+        if (status.state !== 'running') {
+            clearInterval(state.chatPolling);
+            renderChats(await api('/api/chats'));
+        }
+
+        return status.state;
+    };
+
+    if ((await tick()) === 'running') {
+        state.chatPolling = setInterval(() => tick().catch((error) => notify(error.message)), 1000);
+    }
+}
+
+async function openChat() {
+    state.settings = await api('/api/state');
+
+    if (!state.settings.configured || state.settings.connectionError) {
+        if (state.settings.connectionError) {
+            notify(state.settings.connectionError);
+        }
+
+        openSetup();
+        return;
+    }
+
+    const select = element('chat-channel');
+    const chosen = select.value;
+    const channels = await api('/api/channels');
+
+    select.replaceChildren(
+        ...channels.map(({ id, name, isForum }) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = `#${name}${isForum ? ' (forum)' : ''}`;
+            return option;
+        }),
+    );
+
+    if (channels.some(({ id }) => id === chosen)) {
+        select.value = chosen;
+    }
+
+    show('chat');
+    await followChat();
+}
+
 async function openBuild() {
     state.settings = await api('/api/state');
 
@@ -731,7 +865,9 @@ async function checkNames() {
 function wireEvents() {
     for (const button of document.querySelectorAll('[data-nav]')) {
         action(button, async () => {
-            if (state.batch?.state === 'running') {
+            if (button.dataset.nav === 'chat') {
+                await openChat();
+            } else if (state.batch?.state === 'running') {
                 await followBatch();
             } else if (button.dataset.nav === 'build') {
                 await openBuild();
@@ -888,6 +1024,11 @@ function wireEvents() {
     action(element('preview-confirm'), async () => {
         await api('/api/confirm', { previewId: state.preview.id });
         await followBatch();
+    });
+
+    action(element('chat-start'), async () => {
+        await api('/api/chat/start', { channelId: element('chat-channel').value });
+        await followChat();
     });
 
     action(element('progress-stop'), () => api('/api/stop', {}));
